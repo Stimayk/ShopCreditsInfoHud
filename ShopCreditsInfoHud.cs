@@ -7,7 +7,7 @@ namespace ShopCreditsInfoHud
     public class ShopCreditsInfoHud : BasePlugin
     {
         public override string ModuleName => "[SHOP] Credits Info Hud";
-        public override string ModuleVersion => "v1.0";
+        public override string ModuleVersion => "v1.1.0";
         public override string ModuleAuthor => "E!N";
         public override string ModuleDescription => "Information about credits in hud";
 
@@ -16,7 +16,23 @@ namespace ShopCreditsInfoHud
         public override void OnAllPluginsLoaded(bool hotReload)
         {
             _shopApi = IShopApi.Capability.Get();
-            RegisterListener<Listeners.OnTick>(OnTick);
+            if (_shopApi != null)
+            {
+                RegisterListener<Listeners.OnTick>(OnTick);
+
+                _shopApi.CreditsAddPost += OnCreditsAdded;
+                _shopApi.CreditsTakePost += OnCreditsTaken;
+            }
+        }
+
+        public override void Unload(bool hotReload)
+        {
+            if (_shopApi != null)
+            {
+                RemoveListener<Listeners.OnTick>(OnTick);
+                _shopApi.CreditsAddPost -= OnCreditsAdded;
+                _shopApi.CreditsTakePost -= OnCreditsTaken;
+            }
         }
 
         private void OnTick()
@@ -26,6 +42,20 @@ namespace ShopCreditsInfoHud
             {
                 UpdatePlayerCreditsHud(player);
             }
+        }
+
+        private void OnCreditsAdded(CCSPlayerController player, int newCredits, IShopApi.WhoChangeCredits byWho)
+        {
+            var totalCredits = _shopApi?.GetClientCredits(player) ?? 0;
+
+            player.PrintToCenter(Localizer["AddCredits", newCredits, totalCredits]);
+        }
+
+        private void OnCreditsTaken(CCSPlayerController player, int newCredits, IShopApi.WhoChangeCredits byWho)
+        {
+            var totalCredits = _shopApi?.GetClientCredits(player) ?? 0;
+
+            player.PrintToCenter(Localizer["TakeCredits", newCredits, totalCredits]);
         }
 
         private void UpdatePlayerCreditsHud(CCSPlayerController player)
